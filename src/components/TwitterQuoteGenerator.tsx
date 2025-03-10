@@ -61,7 +61,7 @@ export default function TwitterQuoteGenerator() {
         logging: false,
         backgroundColor: null,
         imageTimeout: 0, // No timeout for images
-        onclone: (clonedDoc) => {
+        onclone: (clonedDoc: Document) => {
           // Make sure background images are properly loaded in the clone
           const clonedElement = clonedDoc.querySelector(
             '[data-html2canvas-clone="true"]',
