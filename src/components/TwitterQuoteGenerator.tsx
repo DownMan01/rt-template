@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +10,7 @@ export default function TwitterQuoteGenerator() {
   const [name, setName] = useState("Andrew");
   const [username, setUsername] = useState("andrewImXXXI");
   const [tweetText, setTweetText] = useState(
-    "yung back hug na pinapangarap ko,\nback pain na ngayon"
+    "yung back hug na pinapangarap ko,\nback pain na ngayon",
   );
   const [profileImage, setProfileImage] = useState("");
   const [backgroundImage, setBackgroundImage] = useState("");
@@ -19,44 +19,84 @@ export default function TwitterQuoteGenerator() {
   const backgroundInputRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const handleImageUpload = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    setImage: React.Dispatch<React.SetStateAction<string>>
-  ) => {
+  const handleProfileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        setImage(e.target?.result as string);
+        setProfileImage(e.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setBackgroundImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerProfileUpload = () => {
+    profileInputRef.current?.click();
+  };
+
+  const triggerBackgroundUpload = () => {
+    backgroundInputRef.current?.click();
   };
 
   const downloadImage = async () => {
     if (!previewRef.current) return;
 
     try {
-      const originalCanvas = await html2canvas(previewRef.current, {
-        scale: 2, // Improves quality
+      // Use the imported html2canvas with higher quality settings
+      const canvas = await html2canvas(previewRef.current, {
+        allowTaint: true,
         useCORS: true,
-        backgroundColor: null, // Keeps transparency if needed
+        scale: 4, // Much higher quality
+        logging: false,
+        backgroundColor: null,
+        imageTimeout: 0, // No timeout for images
+        onclone: (clonedDoc) => {
+          // Make sure background images are properly loaded in the clone
+          const clonedElement = clonedDoc.querySelector(
+            '[data-html2canvas-clone="true"]',
+          );
+          if (clonedElement && backgroundImage) {
+            const bgDiv = clonedElement.querySelector(".bg-div");
+            if (bgDiv) {
+              const img = new Image();
+              img.src = backgroundImage;
+              img.onload = () => {}; // Ensure image is loaded
+            }
+          }
+        },
       });
 
-      // Create a fixed-size canvas to ensure exact 1500x1500 resolution
-      const finalCanvas = document.createElement("canvas");
-      finalCanvas.width = 1500;
-      finalCanvas.height = 1500;
-      const ctx = finalCanvas.getContext("2d");
+      // Create a new canvas with exact 1500x1500 dimensions
+      const resizedCanvas = document.createElement("canvas");
+      resizedCanvas.width = 1500;
+      resizedCanvas.height = 1500;
+      const ctx = resizedCanvas.getContext("2d", { alpha: true });
 
       if (ctx) {
-        ctx.drawImage(originalCanvas, 0, 0, 1500, 1500);
-      }
+        // Set high quality image rendering
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
 
-      const link = document.createElement("a");
-      link.download = "twitter-quote.png";
-      link.href = finalCanvas.toDataURL("image/png", 1.0);
-      link.click();
+        // Draw the original canvas onto the resized canvas
+        ctx.drawImage(canvas, 0, 0, 1500, 1500);
+
+        // Create download link with the resized canvas
+        const link = document.createElement("a");
+        link.download = "twitter-quote.png";
+        link.href = resizedCanvas.toDataURL("image/png", 1.0); // Use maximum quality
+        link.click();
+      }
     } catch (error) {
       console.error("Error generating image:", error);
       alert("Failed to generate image. Please try again.");
@@ -111,16 +151,16 @@ export default function TwitterQuoteGenerator() {
               <input
                 type="file"
                 ref={profileInputRef}
-                onChange={(e) => handleImageUpload(e, setProfileImage)}
+                onChange={handleProfileUpload}
                 className="hidden"
                 accept="image/*"
               />
               <Button
-                onClick={() => profileInputRef.current?.click()}
+                onClick={triggerProfileUpload}
                 className="w-full bg-[#15202b] hover:bg-[#1e2732] text-white border-[1px] border-[#333] h-10"
                 variant="outline"
               >
-                📷 Upload Profile
+                <span className="mr-2">📷</span> Upload Profile
               </Button>
             </div>
             <div>
@@ -128,34 +168,39 @@ export default function TwitterQuoteGenerator() {
               <input
                 type="file"
                 ref={backgroundInputRef}
-                onChange={(e) => handleImageUpload(e, setBackgroundImage)}
+                onChange={handleBackgroundUpload}
                 className="hidden"
                 accept="image/*"
               />
               <Button
-                onClick={() => backgroundInputRef.current?.click()}
+                onClick={triggerBackgroundUpload}
                 className="w-full bg-[#15202b] hover:bg-[#1e2732] text-white border-[1px] border-[#333] h-10"
                 variant="outline"
               >
-                🖼️ Upload Background
+                <span className="mr-2">🖼️</span> Upload Background
               </Button>
             </div>
           </div>
 
-          {/* Twitter Quote Preview */}
           <div
             ref={previewRef}
             className="w-full aspect-square bg-[#15202b] overflow-hidden mb-4 relative"
-            style={{ width: "1500px", height: "1500px" }}
           >
             {backgroundImage && (
               <div
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: `url(${backgroundImage})` }}
-              />
+                className="w-full h-full bg-cover bg-center absolute top-0 left-0 bg-div"
+                style={{
+                  backgroundImage: `url(${backgroundImage})`,
+                }}
+              >
+                {/* Preload image for better quality */}
+                {backgroundImage && (
+                  <img src={backgroundImage} className="hidden" alt="" />
+                )}
+              </div>
             )}
             <div className="px-10 py-8 relative z-10 flex flex-col justify-center h-full">
-              <div className="flex items-start mb-4 mx-6">
+              <div className="flex items-start mb-[4] mb-[4] mx-6">
                 <div
                   className="w-10 h-10 rounded-full mr-3 bg-white overflow-hidden flex-shrink-0"
                   style={{
@@ -184,12 +229,26 @@ export default function TwitterQuoteGenerator() {
             </div>
           </div>
 
-          {/* Download Button */}
           <Button
             onClick={downloadImage}
             className="bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white w-full flex items-center justify-center gap-2 h-10"
           >
-            ⬇ Download Image
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download Image
           </Button>
         </div>
       </div>
