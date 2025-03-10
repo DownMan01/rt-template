@@ -77,10 +77,10 @@ export default function TwitterQuoteGenerator() {
         },
       });
 
-      // Create a new canvas with exact 1500x1500 dimensions
+      // Create a new canvas with exact 2000x2000 dimensions
       const resizedCanvas = document.createElement("canvas");
-      resizedCanvas.width = 1000;
-      resizedCanvas.height = 1000;
+      resizedCanvas.width = 2000;
+      resizedCanvas.height = 2000;
       const ctx = resizedCanvas.getContext("2d", { alpha: true });
 
       if (ctx) {
@@ -89,7 +89,7 @@ export default function TwitterQuoteGenerator() {
         ctx.imageSmoothingQuality = "high";
 
         // Draw the original canvas onto the resized canvas
-        ctx.drawImage(canvas, 0, 0, 1500, 1500);
+        ctx.drawImage(canvas, 0, 0, 2000, 2000);
 
         // Create download link with the resized canvas
         const link = document.createElement("a");
