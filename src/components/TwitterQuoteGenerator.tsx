@@ -20,31 +20,42 @@ export default function TwitterQuoteGenerator() {
   const backgroundInputRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const handleImageUpload = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    setImage: React.Dispatch<React.SetStateAction<string>>
-  ) => {
+  const handleProfileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        if (e.target?.result) setImage(e.target.result as string);
+        setProfileImage(e.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const triggerFileUpload = (ref: React.RefObject<HTMLInputElement>) => {
-    ref.current?.click();
+  const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setBackgroundImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerProfileUpload = () => {
+    profileInputRef.current?.click();
+  };
+
+  const triggerBackgroundUpload = () => {
+    backgroundInputRef.current?.click();
   };
 
   const downloadImage = async () => {
     if (!previewRef.current) return;
 
     setIsGenerating(true);
-    
+
     try {
-      // Preload all images
       await Promise.all(
         Array.from(previewRef.current.querySelectorAll("img"))
           .map(img => img.complete 
@@ -84,7 +95,77 @@ export default function TwitterQuoteGenerator() {
       </h1>
       <div className="flex flex-col items-center">
         <div className="w-full max-w-md">
-          {/* Input fields remain the same */}
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block mb-2 text-sm">Name</label>
+              <Input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="bg-[#15202b] border-[1px] border-[#333] text-white"
+              />
+            </div>
+            <div>
+              <label className="block mb-2 text-sm">Username</label>
+              <div className="flex">
+                <span className="flex items-center justify-center px-3 bg-[#15202b] text-gray-400 border-[1px] border-r-0 border-[#333] rounded-l-md">
+                  @
+                </span>
+                <Input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="bg-[#15202b] border-[1px] border-[#333] text-white rounded-l-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="block mb-2 text-sm">Tweet Text</label>
+            <Textarea
+              value={tweetText}
+              onChange={(e) => setTweetText(e.target.value)}
+              className="bg-[#15202b] border-[1px] border-[#333] text-white min-h-[80px]"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="block mb-2 text-sm">Profile Image</label>
+              <input
+                type="file"
+                ref={profileInputRef}
+                onChange={handleProfileUpload}
+                className="hidden"
+                accept="image/*"
+              />
+              <Button
+                onClick={triggerProfileUpload}
+                className="w-full bg-[#15202b] hover:bg-[#1e2732] text-white border-[1px] border-[#333] h-10"
+                variant="outline"
+              >
+                <span className="mr-2">📷</span> Upload Profile
+              </Button>
+            </div>
+            <div>
+              <label className="block mb-2 text-sm">Background Image</label>
+              <input
+                type="file"
+                ref={backgroundInputRef}
+                onChange={handleBackgroundUpload}
+                className="hidden"
+                accept="image/*"
+              />
+              <Button
+                onClick={triggerBackgroundUpload}
+                className="w-full bg-[#15202b] hover:bg-[#1e2732] text-white border-[1px] border-[#333] h-10"
+                variant="outline"
+              >
+                <span className="mr-2">🖼️</span> Upload Background
+              </Button>
+            </div>
+          </div>
 
           <div
             ref={previewRef}
@@ -101,7 +182,7 @@ export default function TwitterQuoteGenerator() {
             )}
             <div className="px-10 py-8 relative z-10 h-full flex flex-col justify-center">
               <div className="flex items-start mb-4 mx-6">
-                <div className="w-10 h-10 rounded-full mr-3 overflow-hidden flex-shrink-0">
+                <div className="w-10 h-10 rounded-full mr-3 overflow-hidden flex-shrink-0 bg-white">
                   {profileImage ? (
                     <img
                       src={profileImage}
@@ -110,7 +191,7 @@ export default function TwitterQuoteGenerator() {
                       crossOrigin="anonymous"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-white text-[#15202b] text-lg">
+                    <div className="w-full h-full flex items-center justify-center text-[#15202b] text-lg">
                       {name.charAt(0)}
                     </div>
                   )}
