@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,51 +52,35 @@ export default function TwitterQuoteGenerator() {
   const downloadImage = async () => {
     if (!previewRef.current) return;
 
+    // Ensure all images are loaded
+    const loadImages = () => {
+      return Promise.all(
+        Array.from(previewRef.current!.querySelectorAll("img")).map((img) => {
+          if (img.complete) return Promise.resolve();
+          return new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        })
+      );
+    };
+
+    await loadImages();
+
     try {
-      // Use the imported html2canvas with higher quality settings
       const canvas = await html2canvas(previewRef.current, {
-        allowTaint: true,
         useCORS: true,
-        scale: 4, // Much higher quality
+        scale: 3,
         logging: false,
         backgroundColor: null,
-        imageTimeout: 0, // No timeout for images
-        onclone: (clonedDoc: Document) => {
-          // Make sure background images are properly loaded in the clone
-          const clonedElement = clonedDoc.querySelector(
-            '[data-html2canvas-clone="true"]',
-          );
-          if (clonedElement && backgroundImage) {
-            const bgDiv = clonedElement.querySelector(".bg-div");
-            if (bgDiv) {
-              const img = new Image();
-              img.src = backgroundImage;
-              img.onload = () => {}; // Ensure image is loaded
-            }
-          }
-        },
+        windowWidth: previewRef.current.scrollWidth,
+        windowHeight: previewRef.current.scrollHeight,
       });
 
-      // Create a new canvas with exact 2000x2000 dimensions
-      const resizedCanvas = document.createElement("canvas");
-      resizedCanvas.width = 2000;
-      resizedCanvas.height = 2000;
-      const ctx = resizedCanvas.getContext("2d", { alpha: true });
-
-      if (ctx) {
-        // Set high quality image rendering
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-
-        // Draw the original canvas onto the resized canvas
-        ctx.drawImage(canvas, 0, 0, 2000, 2000);
-
-        // Create download link with the resized canvas
-        const link = document.createElement("a");
-        link.download = "twitter-quote.png";
-        link.href = resizedCanvas.toDataURL("image/png", 1.0); // Use maximum quality
-        link.click();
-      }
+      const link = document.createElement("a");
+      link.download = "twitter-quote.png";
+      link.href = canvas.toDataURL("image/png", 1.0);
+      link.click();
     } catch (error) {
       console.error("Error generating image:", error);
       alert("Failed to generate image. Please try again.");
@@ -185,22 +169,19 @@ export default function TwitterQuoteGenerator() {
           <div
             ref={previewRef}
             className="w-full aspect-square bg-[#15202b] overflow-hidden mb-4 relative"
+            style={{ contain: "strict" }} // Improves rendering performance
           >
             {backgroundImage && (
               <div
-                className="w-full h-full bg-cover bg-center absolute top-0 left-0 bg-div"
-                style={{
-                  backgroundImage: `url(${backgroundImage})`,
-                }}
+                className="w-full h-full bg-cover bg-center absolute top-0 left-0"
+                style={{ backgroundImage: `url(${backgroundImage})` }}
               >
-                {/* Preload image for better quality */}
-                {backgroundImage && (
-                  <img src={backgroundImage} className="hidden" alt="" />
-                )}
+                {/* Hidden preloader for better image quality */}
+                <img src={backgroundImage} className="hidden" alt="" />
               </div>
             )}
             <div className="px-10 py-8 relative z-10 flex flex-col justify-center h-full">
-              <div className="flex items-start mb-[4] mb-[4] mx-6">
+              <div className="flex items-start mb-4 mx-6">
                 <div
                   className="w-10 h-10 rounded-full mr-3 bg-white overflow-hidden flex-shrink-0"
                   style={{
@@ -223,7 +204,7 @@ export default function TwitterQuoteGenerator() {
                 </div>
                 <div className="ml-auto text-gray-400">•••</div>
               </div>
-              <div className="whitespace-pre-line text-base text-left flex mx-6">
+              <div className="whitespace-pre-line text-base text-left mx-6">
                 {tweetText}
               </div>
             </div>
