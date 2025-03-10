@@ -49,59 +49,27 @@ export default function TwitterQuoteGenerator() {
     backgroundInputRef.current?.click();
   };
 
-  const downloadImage = async () => {
-    if (!previewRef.current) return;
+ const downloadImage = async () => {
+  if (!previewRef.current) return;
 
-    try {
-      // Use the imported html2canvas with higher quality settings
-      const canvas = await html2canvas(previewRef.current, {
-        allowTaint: true,
-        useCORS: true,
-        scale: 4, // Much higher quality
-        logging: false,
-        backgroundColor: null,
-        imageTimeout: 0, // No timeout for images
-        onclone: (clonedDoc: Document) => {
-          // Make sure background images are properly loaded in the clone
-          const clonedElement = clonedDoc.querySelector(
-            '[data-html2canvas-clone="true"]',
-          );
-          if (clonedElement && backgroundImage) {
-            const bgDiv = clonedElement.querySelector(".bg-div");
-            if (bgDiv) {
-              const img = new Image();
-              img.src = backgroundImage;
-              img.onload = () => {}; // Ensure image is loaded
-            }
-          }
-        },
-      });
+  try {
+    const canvas = await html2canvas(previewRef.current, {
+      width: 1500,
+      height: 1500,
+      useCORS: true,
+      backgroundColor: null,
+    });
 
-      // Create a new canvas with exact 1500x1500 dimensions
-      const resizedCanvas = document.createElement("canvas");
-      resizedCanvas.width = 1500;
-      resizedCanvas.height = 1500;
-      const ctx = resizedCanvas.getContext("2d", { alpha: true });
+    const link = document.createElement("a");
+    link.download = "twitter-quote.png";
+    link.href = canvas.toDataURL("image/png", 1.0); // Ensure full quality
+    link.click();
+  } catch (error) {
+    console.error("Error generating image:", error);
+    alert("Failed to generate image. Please try again.");
+  }
+};
 
-      if (ctx) {
-        // Set high quality image rendering
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-
-        // Draw the original canvas onto the resized canvas
-        ctx.drawImage(canvas, 0, 0, 1500, 1500);
-
-        // Create download link with the resized canvas
-        const link = document.createElement("a");
-        link.download = "twitter-quote.png";
-        link.href = resizedCanvas.toDataURL("image/png", 1.0); // Use maximum quality
-        link.click();
-      }
-    } catch (error) {
-      console.error("Error generating image:", error);
-      alert("Failed to generate image. Please try again.");
-    }
-  };
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0f1419] text-white p-6">
