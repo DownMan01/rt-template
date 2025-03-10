@@ -79,8 +79,8 @@ export default function TwitterQuoteGenerator() {
 
       // Create a new canvas with exact 1500x1500 dimensions
       const resizedCanvas = document.createElement("canvas");
-      resizedCanvas.width = 1500;
-      resizedCanvas.height = 1500;
+      resizedCanvas.width = 1000;
+      resizedCanvas.height = 1000;
       const ctx = resizedCanvas.getContext("2d", { alpha: true });
 
       if (ctx) {
